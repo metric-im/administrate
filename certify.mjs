@@ -60,6 +60,7 @@ export class Certify {
       });
         router.get(/^\/\.well-known\/acme-challenge\/([^\/]+)$/,(req,res)=>{
             const token = req.params[0];
+            console.log(`Challenge: ${token} ...here`);
             if (token in this.challenges) {
                 res.writeHead(200);
                 res.end(this.challenges[token]);
