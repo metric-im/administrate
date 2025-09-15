@@ -32,8 +32,8 @@ export class Certify {
         return {SNICallback: async (hostname, cb) => {
             const site = this.config.data.ssl[hostname];
             if (site) {
-                const key = this.config.readFile(site.key);
-                const cert = this.config.readFile(site.cert);
+                const key = this.config.readFile(site.key).toString();
+                const cert = this.config.readFile(site.cert).toString();
                 cb(null, tls.createSecureContext({key:key,cert:cert}));
             } else {
                 cb(new Error(`${hostname} is unknown`));
