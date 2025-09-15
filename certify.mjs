@@ -20,7 +20,7 @@ export class Certify {
             directoryUrl: Acme.directory.letsencrypt[process.env.PROFILE==='DEV'?'staging':'production'],
             accountKey: await Acme.crypto.createPrivateKey(),
         });
-        instance.acme.setLogger((message) => {
+        Acme.setLogger((message) => {
           console.log(message);
         });
         app.use('/',instance.routes());
