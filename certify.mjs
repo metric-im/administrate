@@ -1,9 +1,9 @@
 import express from 'express';
 import acme from 'acme-client';
 import tls from 'tls';
-import Config from './config.mjs'
+import { Config } from './config.mjs'
 
-export default class Certify {
+export class Certify {
     constructor(app,options) {
         this.app = app;
         this.options = options || {};
@@ -15,11 +15,12 @@ export default class Certify {
         const instance = new Certify(app,options);
         instance.config = new Config();
         if (!instance.config.ssl) instance.config.ssl = {};
-        this.contactEmail = instance.config.profile?.email || instance.options.contactEmail;
+        instance.contactEmail = instance.config.profile?.email || instance.options.contactEmail;
         instance.acme = new acme.Client({
             directoryUrl: acme.directory.letsencrypt[process.env.PROFILE==='DEV'?'staging':'production'],
             accountKey: await acme.crypto.createPrivateKey(),
         });
+        app.use('/',instance.routes());
         return instance;
     }
     get SNI() {
@@ -35,7 +36,7 @@ export default class Certify {
 
     routes() {
         const router = express.Router();
-        router.get('/_certify',async (req,res)=>{
+        router.get(/^\/_certify/,async (req,res)=>{
             try {
                 const site = this.config.ssl[req.hostname];
                 if (site) {
@@ -48,7 +49,7 @@ export default class Certify {
                 res.status(500).send({status:'error',message:e.message});
             }
         })
-        router.get('/.well-known/acme-challenge/:token',(req,res)=>{
+        router.get(/^\/\.well-known\/acme-challenge\/([^\/]+)$/,(req,res)=>{
             const token = req.params.token;
             if (token in this.challenges) {
                 res.writeHead(200);
@@ -58,16 +59,16 @@ export default class Certify {
             res.writeHead(302, { Location: `https://${req.headers.host}${req.url}` });
             res.end();
         });
-        router.use((req, res, next) => {
-            if (!req.secure && process.env.FORCE_HTTPS.toLowerCase() !== 'false') {
-                return res.redirect(`https://${req.hostname}${req.url}`);
-            }
-            next();
-        });
+        // router.use((req, res, next) => {
+        //     if (!req.secure && process.env.FORCE_HTTPS?.toLowerCase() !== 'false') {
+        //         return res.redirect(`https://${req.hostname}${req.url}`);
+        //     }
+        //     next();
+        // });
         return router;
     }
     async getCert(servername, attempt = 0) {
-        const server = this.sites[servername];
+        const server = this.config.data.ssl?this.config.data.ssl[servername]:undefined;
         if (server) {
             return server.cert;
         }

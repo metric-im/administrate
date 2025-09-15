@@ -2,7 +2,7 @@ import fs from 'fs';
 import ini from 'ini';
 import {dirname, join, resolve} from "path";
 
-export default class Config {
+export class Config {
     constructor() {
         this.rootName = process.env.ROOT_NAME || 'metric-im';
         this.homeDir = (process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME);
@@ -16,8 +16,7 @@ export default class Config {
     }
 
     initialize() {
-        let fileData = fs.readFileSync(`${this.rootPath}/default.ini`, 'utf8');
-        this.data = ini.decode({});
+        this.data = ini.decode("");
         if (!fs.existsSync(this.configDir)) {
             fs.mkdirSync(this.configDir);
         }
