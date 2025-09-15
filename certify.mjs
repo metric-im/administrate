@@ -1,5 +1,5 @@
 import express from 'express';
-import acme from 'acme-client';
+import Acme from 'acme-client';
 import tls from 'tls';
 import { Config } from './config.mjs'
 
@@ -16,9 +16,12 @@ export class Certify {
         instance.config = new Config();
         if (!instance.config.ssl) instance.config.ssl = {};
         instance.contactEmail = instance.config.profile?.email || instance.options.contactEmail;
-        instance.acme = new acme.Client({
-            directoryUrl: acme.directory.letsencrypt[process.env.PROFILE==='DEV'?'staging':'production'],
-            accountKey: await acme.crypto.createPrivateKey(),
+        instance.acme = new Acme.Client({
+            directoryUrl: Acme.directory.letsencrypt[process.env.PROFILE==='DEV'?'staging':'production'],
+            accountKey: await Acme.crypto.createPrivateKey(),
+        });
+        instance.acme.setLogger((message) => {
+          console.log(message);
         });
         app.use('/',instance.routes());
         return instance;
@@ -85,7 +88,7 @@ export class Certify {
         }
         if (!this.contactEmail) throw new Error(`cannot request certificate without CONTACT_EMAIL set`);
         // create CSR
-        const [key, csr] = await acme.crypto.createCsr({
+        const [key, csr] = await Acme.crypto.createCsr({
             altNames: [servername],
         });
         // order certificate
