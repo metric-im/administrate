@@ -14,7 +14,7 @@ export class Certify {
     static async attach(app,options) {
         const instance = new Certify(app,options);
         instance.config = new Config();
-        if (!instance.config.ssl) instance.config.ssl = {};
+        if (!instance.config.data.ssl) instance.config.data.ssl = {};
         instance.contactEmail = instance.config.profile?.email || instance.options.contactEmail;
         instance.acme = new Acme.Client({
             directoryUrl: Acme.directory.letsencrypt[process.env.PROFILE==='DEV'?'staging':'production'],
@@ -30,7 +30,7 @@ export class Certify {
     }
     get SNI() {
         return {SNICallback: async (hostname, cb) => {
-            const site = this.config.ssl[hostname];
+            const site = this.config.data.ssl[hostname];
             if (site) {
                 cb(null, tls.createSecureContext({key:site.key,cert:site.cert}));
             } else {
@@ -43,7 +43,7 @@ export class Certify {
         const router = express.Router();
         router.get(/^\/_certify/,async (req,res)=>{
             try {
-                const site = this.config.ssl[req.hostname];
+                const site = this.config.data.ssl[req.hostname];
                 if (site) {
                     res.send('cert already exists');
                 } else  {
@@ -95,22 +95,24 @@ export class Certify {
             altNames: [servername],
         });
         // order certificate
-        const cert = await this.acme.auto({
-            csr,
-            email: this.contactEmail,
-            termsOfServiceAgreed: true,
-            challengePriority: ['http-01'],
-            challengeCreateFn: (authz, challenge, keyAuthorization) => {
-                this.challenges[challenge.token] = keyAuthorization;
-            },
-            challengeRemoveFn: (authz, challenge) => {
-                delete this.challenges[challenge.token];
-            },
-        });
+        // const cert = await this.acme.auto({
+        //     csr,
+        //     email: this.contactEmail,
+        //     termsOfServiceAgreed: true,
+        //     challengePriority: ['http-01'],
+        //     challengeCreateFn: (authz, challenge, keyAuthorization) => {
+        //         this.challenges[challenge.token] = keyAuthorization;
+        //     },
+        //     challengeRemoveFn: (authz, challenge) => {
+        //         delete this.challenges[challenge.token];
+        //     },
+        // });
+      const cert = 'asldkjflskdjflskdjflsdkjflsdkfjsladkfjTEST'
+
         // save certificate
         this.config.writeFile(servername+'.cert', cert);
         this.config.writeFile(servername+'.key', key.toString());
-        this.config.ssl[servername] = {key:servername+'.key', cert:servername+'.cert',modified:Date.now()};
+        this.config.data.ssl[servername] = {key:servername+'.key', cert:servername+'.cert',modified:Date.now()};
         delete this.pending[servername];
         this.config.save();
     }
