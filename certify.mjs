@@ -32,7 +32,9 @@ export class Certify {
         return {SNICallback: async (hostname, cb) => {
             const site = this.config.data.ssl[hostname];
             if (site) {
-                cb(null, tls.createSecureContext({key:site.key,cert:site.cert}));
+                const key = this.config.readFile(site.key);
+                const cert = this.config.readFile(site.cert);
+                cb(null, tls.createSecureContext({key:key,cert:cert}));
             } else {
                 cb(new Error(`${hostname} is unknown`));
             }
@@ -95,19 +97,18 @@ export class Certify {
             altNames: [servername],
         });
         // order certificate
-        // const cert = await this.acme.auto({
-        //     csr,
-        //     email: this.contactEmail,
-        //     termsOfServiceAgreed: true,
-        //     challengePriority: ['http-01'],
-        //     challengeCreateFn: (authz, challenge, keyAuthorization) => {
-        //         this.challenges[challenge.token] = keyAuthorization;
-        //     },
-        //     challengeRemoveFn: (authz, challenge) => {
-        //         delete this.challenges[challenge.token];
-        //     },
-        // });
-      const cert = 'asldkjflskdjflskdjflsdkjflsdkfjsladkfjTEST'
+        const cert = await this.acme.auto({
+            csr,
+            email: this.contactEmail,
+            termsOfServiceAgreed: true,
+            challengePriority: ['http-01'],
+            challengeCreateFn: (authz, challenge, keyAuthorization) => {
+                this.challenges[challenge.token] = keyAuthorization;
+            },
+            challengeRemoveFn: (authz, challenge) => {
+                delete this.challenges[challenge.token];
+            },
+        });
 
         // save certificate
         this.config.writeFile(servername+'.cert', cert);
