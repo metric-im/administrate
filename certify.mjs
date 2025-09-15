@@ -56,13 +56,8 @@ export class Certify {
                 res.status(500).send({status:'error',message:e.message});
             }
         })
-      router.get(/^\/\.hell-known\/acme-challenge\/([^\/]+)$/,(req,res)=>{
-        const token = req.params[0];
-        res.send(`token: ${token}`);
-      });
         router.get(/^\/\.well-known\/acme-challenge\/([^\/]+)$/,(req,res)=>{
             const token = req.params[0];
-            console.log(`Challenge: ${token} ...here`);
             if (token in this.challenges) {
                 res.writeHead(200);
                 res.end(this.challenges[token]);
