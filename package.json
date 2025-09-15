@@ -1,0 +1,26 @@
+{
+  "name": "@metric-im/administrate",
+  "version": "1.0.0",
+  "description": "Tools for site administration",
+  "homepage": "https://github.com/metric-im/administrate#readme",
+  "bugs": {
+    "url": "https://github.com/metric-im/administrate/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metric-im/administrate.git"
+  },
+  "license": "MIT",
+  "author": "Michael Sprague",
+  "type": "commonjs",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "acme-client": "^5.4.0",
+    "express": "^5.1.0",
+    "ini": "^5.0.0",
+    "moment": "^2.30.1"
+  }
+}

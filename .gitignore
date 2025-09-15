@@ -1,0 +1,10 @@
+.idea
+scratch.html
+node_modules
+jspm_packages
+test_modules
+.npm
+package-lock\.json
+.npmrc
+.env
+.DS_Store
