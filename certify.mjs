@@ -37,7 +37,6 @@ export class Certify {
                 cb(null, tls.createSecureContext({
                     key: key,
                     cert: cert,
-                    secureProtocol: 'TLS_method',
                     minVersion: 'TLSv1.2',
                     maxVersion: 'TLSv1.3',
                     ciphers: [
