@@ -39,24 +39,24 @@ export class Certify {
                     cert: cert,
                     minVersion: 'TLSv1.2',
                     maxVersion: 'TLSv1.3',
-                    ciphers: [
-                        'ECDHE-RSA-AES128-GCM-SHA256',
-                        'ECDHE-RSA-AES256-GCM-SHA384',
-                        'ECDHE-RSA-AES128-SHA256',
-                        'ECDHE-RSA-AES256-SHA384',
-                        'DHE-RSA-AES128-GCM-SHA256',
-                        'DHE-RSA-AES256-GCM-SHA384',
-                        'HIGH',
-                        '!aNULL',
-                        '!eNULL',
-                        '!EXPORT',
-                        '!DES',
-                        '!RC4',
-                        '!MD5',
-                        '!PSK',
-                        '!SRP',
-                        '!CAMELLIA'
-                    ].join(':')
+                    // ciphers: [
+                    //     'ECDHE-RSA-AES128-GCM-SHA256',
+                    //     'ECDHE-RSA-AES256-GCM-SHA384',
+                    //     'ECDHE-RSA-AES128-SHA256',
+                    //     'ECDHE-RSA-AES256-SHA384',
+                    //     'DHE-RSA-AES128-GCM-SHA256',
+                    //     'DHE-RSA-AES256-GCM-SHA384',
+                    //     'HIGH',
+                    //     '!aNULL',
+                    //     '!eNULL',
+                    //     '!EXPORT',
+                    //     '!DES',
+                    //     '!RC4',
+                    //     '!MD5',
+                    //     '!PSK',
+                    //     '!SRP',
+                    //     '!CAMELLIA'
+                    // ].join(':')
                 }));
             } else {
                 cb(new Error(`${hostname} is unknown`));
