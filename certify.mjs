@@ -32,10 +32,21 @@ export class Certify {
         return {SNICallback: async (hostname, cb) => {
             const site = this.config.data.ssl[hostname];
             if (site) {
-                const key = this.config.readFile(site.key).toString();
-                const cert = this.config.readFile(site.cert).toString();
-                cb(null, tls.createSecureContext({key: key, cert: cert}));
+                try {
+                    const key = this.config.readFile(site.key).toString();
+                    const cert = this.config.readFile(site.cert).toString();
+                    
+                    console.log(`Loading certificate for ${hostname}`);
+                    console.log(`Certificate starts with: ${cert.substring(0, 50)}...`);
+                    console.log(`Certificate includes intermediate: ${cert.includes('-----BEGIN CERTIFICATE-----') && cert.split('-----BEGIN CERTIFICATE-----').length > 2}`);
+                    
+                    cb(null, tls.createSecureContext({key: key, cert: cert}));
+                } catch (error) {
+                    console.error(`Error loading certificate for ${hostname}:`, error);
+                    cb(error);
+                }
             } else {
+                console.log(`No SSL configuration found for ${hostname}`);
                 cb(new Error(`${hostname} is unknown`));
             }
         }}
@@ -105,7 +116,7 @@ export class Certify {
             },
         });
 
-        // save certificate
+        // save certificate  
         this.config.writeFile(servername+'.cert', cert);
         this.config.writeFile(servername+'.key', key.toString());
         this.config.data.ssl[servername] = {key:servername+'.key', cert:servername+'.cert',modified:Date.now()};
