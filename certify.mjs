@@ -4,6 +4,8 @@ import tls from 'tls';
 import { Config } from './config.mjs';
 import moment from 'moment';
 
+const MAX_AGE = 75; // days
+
 export class Certify {
     constructor(app,options) {
         this.app = app;
@@ -53,7 +55,7 @@ export class Certify {
           try {
             const site = this.config.data.ssl[req.hostname];
             if (!site) return next();
-            if (!site.certified || moment().isAfter(moment(site.certified))) {
+            if (!site.certified || moment().isAfter(moment(site.certified).subtract(MAX_AGE,'days'))) {
               await this.getCert(req.hostname);
             }
           } catch(e) {
@@ -127,7 +129,7 @@ export class Certify {
         // save certificate
         this.config.writeFile(servername+'.cert', cert);
         this.config.writeFile(servername+'.key', key.toString());
-        this.config.data.ssl[servername] = {key:servername+'.key', cert:servername+'.cert',certified:Date.now()};
+        this.config.data.ssl[servername] = {key:servername+'.key', cert:servername+'.cert',certified:moment().format("YYYY-MM-DD")};
         delete this.pending[servername];
         this.config.save();
     }
