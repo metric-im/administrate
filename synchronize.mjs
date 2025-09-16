@@ -12,10 +12,15 @@ import {resolve} from "path";
 import {spawn} from 'child_process';
 
 export class Synchronize {
-  constructor(repositoryPath, branch) {
-    this.repositoryPath = repositoryPath || this.discoverRepositoryPath();
+  constructor(branch) {
+    this.repositoryPath = this.discoverRepositoryPath();
     this.branch = branch || 'main';
     this.appName = this.getAppName();
+  }
+
+  static attach(app,branch) {
+    const instance = new Synchronize(branch);
+    app.use('/',instance.routes());
   }
 
   discoverRepositoryPath() {
@@ -24,13 +29,11 @@ export class Synchronize {
       if (fs.existsSync(packageJsonPath)) {
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
         if (packageJson.repository) {
-          // Return the current working directory as the repository path
-          // since the package.json indicates this is the repository root
           return process.cwd();
         }
       }
     } catch (error) {
-      console.warn('Could not auto-discover repository path:', error.message);
+      console.warn('Could not find repository path:', error.message);
     }
     return process.cwd(); // fallback to current directory
   }
@@ -51,10 +54,6 @@ export class Synchronize {
     return repoPath.split('/').pop();
   }
 
-  static attach(app,repositoryPath,branch) {
-    const instance = new Synchronize(repositoryPath,branch);
-    app.use('/',instance.routes());
-  }
   routes() {
     const router = new express.Router();
     router.get(/^\/_update/, async (req, res) => {

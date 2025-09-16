@@ -1,7 +1,8 @@
 import express from 'express';
 import Acme from 'acme-client';
 import tls from 'tls';
-import { Config } from './config.mjs'
+import { Config } from './config.mjs';
+import moment from 'moment';
 
 export class Certify {
     constructor(app,options) {
@@ -46,22 +47,33 @@ export class Certify {
             }
         }}
     }
-
     routes() {
         const router = express.Router();
-        router.get(/^\/_certify/,async (req,res)=>{
-            try {
-                const site = this.config.data.ssl[req.hostname];
-                if (site) {
-                    res.send('cert already exists');
-                } else  {
-                    await this.getCert(req.hostname);
-                    res.send(`<p>done.</p><p><a href="https://${req.hostname}">https://${req.hostname}</a></p>`);
-                }
-            } catch(e) {
-                res.status(500).send({status:'error',message:e.message});
+        router.use('/',async(req, res, next) => {
+          try {
+            const site = this.config.data.ssl[req.hostname];
+            if (!site) return next();
+            if (!site.certified || moment().isAfter(moment(site.certified))) {
+              await this.getCert(req.hostname);
             }
-        })
+          } catch(e) {
+            console.error(e);
+          }
+          next();
+        });
+        // router.get(/^\/_certify/,async (req,res)=>{
+        //     try {
+        //         const site = this.config.data.ssl[req.hostname];
+        //         if (site) {
+        //             res.send('cert already exists');
+        //         } else  {
+        //             await this.getCert(req.hostname);
+        //             res.send(`<p>done.</p><p><a href="https://${req.hostname}">https://${req.hostname}</a></p>`);
+        //         }
+        //     } catch(e) {
+        //         res.status(500).send({status:'error',message:e.message});
+        //     }
+        // })
         router.get(/^\/\.well-known\/acme-challenge\/([^\/]+)$/,(req,res)=>{
             const token = req.params[0];
             if (token in this.challenges) {
@@ -115,7 +127,7 @@ export class Certify {
         // save certificate
         this.config.writeFile(servername+'.cert', cert);
         this.config.writeFile(servername+'.key', key.toString());
-        this.config.data.ssl[servername] = {key:servername+'.key', cert:servername+'.cert',modified:Date.now()};
+        this.config.data.ssl[servername] = {key:servername+'.key', cert:servername+'.cert',certified:Date.now()};
         delete this.pending[servername];
         this.config.save();
     }
