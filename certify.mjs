@@ -36,17 +36,12 @@ export class Certify {
                     const key = this.config.readFile(site.key).toString();
                     const cert = this.config.readFile(site.cert).toString();
                     
-                    console.log(`Loading certificate for ${hostname}`);
-                    console.log(`Certificate starts with: ${cert.substring(0, 50)}...`);
-                    console.log(`Certificate includes intermediate: ${cert.includes('-----BEGIN CERTIFICATE-----') && cert.split('-----BEGIN CERTIFICATE-----').length > 2}`);
-                    
                     cb(null, tls.createSecureContext({key: key, cert: cert}));
                 } catch (error) {
                     console.error(`Error loading certificate for ${hostname}:`, error);
                     cb(error);
                 }
             } else {
-                console.log(`No SSL configuration found for ${hostname}`);
                 cb(new Error(`${hostname} is unknown`));
             }
         }}
@@ -74,8 +69,9 @@ export class Certify {
                 res.end(this.challenges[token]);
                 return;
             }
-            res.writeHead(302, { Location: `https://${req.headers.host}${req.url}` });
-            res.end();
+            // Don't redirect ACME challenges - return 404 instead
+            res.writeHead(404);
+            res.end('Challenge not found');
         });
         // router.use((req, res, next) => {
         //     if (!req.secure && process.env.FORCE_HTTPS?.toLowerCase() !== 'false') {
