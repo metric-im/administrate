@@ -35,7 +35,7 @@ export class Certify {
                 try {
                     const key = this.config.readFile(site.key).toString();
                     const cert = this.config.readFile(site.cert).toString();
-                    
+
                     cb(null, tls.createSecureContext({key: key, cert: cert}));
                 } catch (error) {
                     console.error(`Error loading certificate for ${hostname}:`, error);
@@ -69,7 +69,7 @@ export class Certify {
                 res.end(this.challenges[token]);
                 return;
             }
-            // Don't redirect ACME challenges - return 404 instead
+            // Don't redirect ACME challenges - return 404 instead (says Claude, used to by 302)
             res.writeHead(404);
             res.end('Challenge not found');
         });
@@ -112,7 +112,7 @@ export class Certify {
             },
         });
 
-        // save certificate  
+        // save certificate
         this.config.writeFile(servername+'.cert', cert);
         this.config.writeFile(servername+'.key', key.toString());
         this.config.data.ssl[servername] = {key:servername+'.key', cert:servername+'.cert',modified:Date.now()};
