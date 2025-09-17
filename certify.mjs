@@ -111,7 +111,7 @@ export class Certify {
     }
     async renewCert(sitename) {
       const site = this.config.data.ssl ? this.config.data.ssl[sitename] : undefined;
-      if (site && moment().isBefore(moment(site.certified).add(MAX_AGE, 'days'))) {
+      if (site?.certified && moment().isBefore(moment(site.certified).add(MAX_AGE, 'days'))) {
         return;
       } else {
         if (!this.contactEmail) throw new Error(`cannot request certificate without CONTACT_EMAIL set`);
