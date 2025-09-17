@@ -57,7 +57,7 @@ export class Certify {
             if (!site) return next();
             if (!site.certified || moment().isAfter(moment(site.certified).subtract(MAX_AGE,'days'))) {
               await this.getCert(req.hostname);
-              req.redirect(req.url)
+              return res.redirect(req.url)
             }
           } catch(e) {
             console.error(e);
