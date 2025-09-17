@@ -93,7 +93,7 @@ export class Certify {
     }
     async getSiteKeys(sitename) {
       const site = this.config.data.ssl ? this.config.data.ssl[sitename] : undefined;
-      if (!site || moment().isAfter(moment(site.certified).add(MAX_AGE, 'days'))) {
+      if (!site?.certified || moment().isAfter(moment(site.certified).add(MAX_AGE, 'days'))) {
         if (!this.pending[sitename] || moment().isAfter(moment(this.pending[sitename]).add(MAX_WAIT_TIME, 'seconds'))) {
           this.pending[sitename] = moment();
           setTimeout(async () => {
