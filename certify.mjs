@@ -55,7 +55,8 @@ export class Certify {
           try {
             const site = this.config.data.ssl[req.hostname];
             if (!site) return next();
-            if (!site.certified || moment().isAfter(moment(site.certified).subtract(MAX_AGE,'days'))) {
+            if (!site.certified || moment().isAfter(moment(site.certified).add(MAX_AGE,'days'))) {
+              console.log(`New certificate required for ${req.hostname}`);
               await this.getCert(req.hostname);
               return res.redirect(req.url)
             }
