@@ -98,7 +98,7 @@ export class Certify {
     }
     async getCert(servername, attempt = 0) {
         const server = this.config.data.ssl?this.config.data.ssl[servername]:undefined;
-        if (server) {
+        if (server?.cert && moment().isBefore(moment(server.certified).add(MAX_AGE,'days'))) {
             return server.cert;
         }
         if (servername in this.pending) {
