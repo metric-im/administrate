@@ -45,33 +45,7 @@ export class Certify {
     }
     routes() {
         const router = express.Router();
-        // router.use('/',async(req, res, next) => {
-        //   try {
-        //     const site = this.config.data.ssl[req.hostname];
-        //     if (!site) return next();
-        //     if (!site.certified || moment().isAfter(moment(site.certified).add(MAX_AGE,'days'))) {
-        //       console.log(`New certificate required for ${req.hostname}`);
-        //       await this.getCert(req.hostname);
-        //       return res.redirect(req.url)
-        //     }
-        //   } catch(e) {
-        //     console.error(e);
-        //   }
-        //   next();
-        // });
-        // router.get(/^\/_certify/,async (req,res)=>{
-        //     try {
-        //         const site = this.config.data.ssl[req.hostname];
-        //         if (site) {
-        //             res.send('cert already exists');
-        //         } else  {
-        //             await this.getCert(req.hostname);
-        //             res.send(`<p>done.</p><p><a href="https://${req.hostname}">https://${req.hostname}</a></p>`);
-        //         }
-        //     } catch(e) {
-        //         res.status(500).send({status:'error',message:e.message});
-        //     }
-        // })
+
         router.get(/^\/\.well-known\/acme-challenge\/([^\/]+)$/,(req,res)=>{
             const token = req.params[0];
             if (token in this.challenges) {
