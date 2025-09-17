@@ -5,6 +5,7 @@ import { Config } from './config.mjs';
 import moment from 'moment';
 
 const MAX_AGE = 75; // days
+const MAX_WAIT_TIME = 60; // seconds
 
 export class Certify {
     constructor(app,options) {
@@ -93,9 +94,12 @@ export class Certify {
     async getSiteKeys(sitename) {
       const site = this.config.data.ssl ? this.config.data.ssl[sitename] : undefined;
       if (!site || moment().isAfter(moment(site.certified).add(MAX_AGE, 'days'))) {
-        setImmediate(async () => {
-          await this.renewCert(sitename);
-        });
+        if (!this.pending[sitename] || moment().isAfter(moment(this.pending[sitename]).add(MAX_WAIT_TIME, 'seconds'))) {
+          this.pending[sitename] = moment();
+          setTimeout(async () => {
+            await this.renewCert(sitename);
+          },10);
+        }
       }
       if (site) {
         const key = this.config.readFile(site.key).toString();
@@ -119,12 +123,12 @@ export class Certify {
         return await this.renewCert(sitename, (attempt + 1));
       } else {
         if (!this.contactEmail) throw new Error(`cannot request certificate without CONTACT_EMAIL set`);
+        this.pending[sitename] = true;
         // create CSR
         const [key, csr] = await Acme.crypto.createCsr({
           altNames: [sitename],
         });
         // order certificate
-        this.pending[sitename] = true;
         const cert = await this.acme.auto({
           csr,
           email: this.contactEmail,
