@@ -113,14 +113,6 @@ export class Certify {
       const site = this.config.data.ssl ? this.config.data.ssl[sitename] : undefined;
       if (site && moment().isBefore(moment(site.certified).add(MAX_AGE, 'days'))) {
         return;
-      } else if (this.pending[sitename]) {
-        if (attempt >= 10) {
-          delete this.pending[sitename];
-          console.error(`Gave up waiting on certificate for ${sitename}`);
-          return;
-        }
-        await new Promise((resolve) => { setTimeout(resolve, 1000); });
-        return await this.renewCert(sitename, (attempt + 1));
       } else {
         if (!this.contactEmail) throw new Error(`cannot request certificate without CONTACT_EMAIL set`);
         this.pending[sitename] = true;
