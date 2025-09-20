@@ -1,6 +1,7 @@
 import fs from 'fs';
 import ini from 'ini';
 import {dirname, join, resolve} from "path";
+import * as domain from "node:domain";
 
 export class Config {
     constructor() {
@@ -40,4 +41,46 @@ export class Config {
     writeFile(filename, data) {
         fs.writeFileSync(join(this.configDir, filename), data);
     }
+}
+
+export class DomainConfig extends Config {
+  constructor(domain) {
+    super();
+    this.domain = domain;
+    this.domainData = {};
+  }
+
+  setDomain(domain) {
+    this.domain = domain;
+    this.domainConfigDir = join(this.configDir, domain);
+    this.domainConfigFile = join(this.domainConfigDir, 'config.ini');
+    if (!fs.existsSync(this.domainConfigDir)) {
+      fs.mkdirSync(this.domainConfigDir);
+      fs.writeFileSync(this.domainConfigFile,JSON.stringify([]));
+    }
+    this.load();
+  }
+  load() {
+    if (this.domain) {
+      const text = fs.readFileSync(this.domainConfigFile);
+      this.domainData = ini.decode(text.toString());
+    }
+    super.load();
+  }
+  save() {
+    if (this.domain) {
+      const text = ini.stringify(this.domainData);
+      fs.writeFileSync(this.domainConfigFile, text);
+    }
+    super.save();
+  }
+  readFile(filename) {
+    if (this.domain) return fs.readFileSync(join(this.domainConfigDir, filename));
+    else return super.readFile(filename);
+  }
+
+  writeFile(filename, data) {
+    if (this.domain) fs.writeFileSync(join(this.domainConfigDir, filename), data);
+    else return super.writeFile(filename);
+  }
 }
