@@ -35,6 +35,7 @@ export class Certify {
     get SNI() {
         return {SNICallback: async (hostname, cb) => {
             try {
+              console.log(`SNL get keys for ${hostname}`)
               const siteKeys = await this.getSiteKeys(hostname);
               cb(null, tls.createSecureContext(siteKeys));
             } catch (error) {
@@ -66,6 +67,11 @@ export class Certify {
         return router;
     }
     async getSiteKeys(sitename) {
+      // For localhost and local domains, don't try to get Let's Encrypt certificates
+      if (sitename === 'localhost' || sitename.includes('.local') || sitename.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+        return null; // Use default certificate
+      }
+      
       const site = this.config.data.ssl ? this.config.data.ssl[sitename] : undefined;
       if (!site?.certified || moment().isAfter(moment(site.certified).add(MAX_AGE, 'days'))) {
         if (!this.pending[sitename] || moment().isAfter(moment(this.pending[sitename]).add(MAX_WAIT_TIME, 'seconds'))) {
