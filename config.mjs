@@ -60,6 +60,15 @@ export class DomainConfig extends Config {
     }
     this.load();
   }
+  getDomain(domain) {
+    let filename = join(this.configDir, domain, 'config.ini');
+    if (fs.existsSync(filename)) {
+      const text = fs.readFileSync(filename);
+      return ini.decode(text.toString());
+    } else {
+      return null;
+    }
+  }
   load() {
     if (this.domain) {
       const text = fs.readFileSync(this.domainConfigFile);
