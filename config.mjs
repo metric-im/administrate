@@ -4,8 +4,8 @@ import {dirname, join, resolve} from "path";
 import * as domain from "node:domain";
 
 export class Config {
-    constructor() {
-        this.rootName = process.env.ROOT_NAME || 'metric-im';
+    constructor(rootName) {
+        this.rootName = rootName || 'metric-im';
         this.homeDir = (process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME);
         this.configDir = join(this.homeDir, '.' + this.rootName);
         this.configFile = join(this.configDir, 'config.ini');
@@ -44,8 +44,8 @@ export class Config {
 }
 
 export class DomainConfig extends Config {
-  constructor(domain) {
-    super();
+  constructor(rootName,domain) {
+    super(rootName);
     this.domain = domain;
     this.domainData = {};
   }
