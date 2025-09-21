@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "acme-client": "^5.4.0",
+    "axios": "^1.7.0",
     "express": "^5.1.0",
     "ini": "^5.0.0",
     "moment": "^2.30.1"
