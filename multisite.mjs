@@ -189,7 +189,7 @@ export class Site {
             this.proc = null;
         }
    }
-    static GetId(hostName) {
+    static GetId(hostName="") {
         return hostName.toLowerCase().replace(/[^a-z0-9-]+/g,'_');
     }
 }
