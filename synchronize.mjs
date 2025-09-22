@@ -9,7 +9,7 @@
 import fs from 'fs';
 import express from 'express';
 import {resolve} from "path";
-import {spawn} from 'child_process';
+import {spawn, exec} from 'child_process';
 
 export class Synchronize {
   constructor(branch) {
@@ -108,5 +108,30 @@ export class Synchronize {
         reject(error);
       });
     });
+  }
+  static async ActiveBranch() {
+    return new Promise((resolve, reject) => {
+      exec('git branch --show-current', (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error executing git command: ${error.message}`);
+          resolve()
+        }
+        if (stderr) {
+          console.error(`Git stderr: ${stderr}`);
+          resolve()
+        }
+        resolve(stdout.trim());
+      });
+    });
+  }
+  static get Package() {
+    if (!Syncrhonize._Package) {
+      let text = fs.readFileSync(resolve('./package.json'), 'utf8');
+      Syncrhonize._Package = JSON.parse(text.toString())
+    }
+    return Syncrhonize._Package;
+  }
+  static get Version() {
+    return Synchronize.Package.version;
   }
 }
