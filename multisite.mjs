@@ -182,7 +182,7 @@ export class MultiSite {
                         validateStatus: () => true,
                         timeout: 30000, // 30 second timeout
                     });
-
+console.status(`${response.status} ${target}`);
                     res.status(response.status).set(response.headers).send(response.data);
                 } catch (error) {
                     console.error(`[Proxy] Error connecting to ${target}:`, error.message);
