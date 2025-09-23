@@ -213,13 +213,14 @@ export class MultiSite {
     }
 }
 export class Site {
-    constructor(name,options={}) {
+    constructor(name,options={},parent) {
         this.name = name;
         this.options = options;
+        this.parent = parent;
     }
-    static Spawn(name, options, multisite, ...args) {
-        const instance = new Site(name, options);
-        instance.spawn(multisite, ...args);
+    static Spawn(name, options, parent) {
+        const instance = new Site(name, options, parent);
+        instance.spawn();
         return instance;
     }
     static Clone(name, multisite) {
@@ -228,11 +229,11 @@ export class Site {
             env: {PORT:multisite.spawnPort,meta:multisite.options}
         };
         const instance = new Site(name,options);
-        instance.spawn(multisite);
+        instance.spawn();
         return instance;
     }
-    spawn(multisite) {
-        let commands = (['run', 'start']).concat(Array.from(arguments).slice(1));
+    spawn() {
+        let commands = (['run', 'start', this.name]);
         console.log(`Spawning site ${this.name} on port ${this.options.env.PORT}`);
 
         try {
@@ -251,11 +252,11 @@ export class Site {
                 this.proc = null;
                 
                 // Clear health check when process exits
-                if (multisite && multisite.healthCheckIntervals) {
-                    const intervalId = multisite.healthCheckIntervals.get(this.name);
+                if (this.healthCheckIntervals) {
+                    const intervalId = this.healthCheckIntervals.get(this.name);
                     if (intervalId) {
                         clearInterval(intervalId);
-                        multisite.healthCheckIntervals.delete(this.name);
+                        this.healthCheckIntervals.delete(this.name);
                     }
                 }
             });
@@ -271,10 +272,10 @@ export class Site {
                     console.log(`${this.name}: Successfully started on port ${this.options.env.PORT}`);
                     
                     // Start health monitoring after a delay to allow process to fully start
-                    if (multisite && multisite.startHealthCheck) {
+                    if (this.startHealthCheck) {
                         setTimeout(() => {
                             if (this.proc && !this.proc.killed) {
-                                multisite.startHealthCheck(this);
+                                this.startHealthCheck(this);
                             }
                         }, 5000); // Wait 5 seconds before starting health checks
                     }
