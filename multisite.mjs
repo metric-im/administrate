@@ -44,9 +44,9 @@ export class MultiSite {
                         }
                         resolve();
                     }, 10000); // 10 second timeout for graceful shutdown
-                    
+
                     site.proc.kill('SIGTERM');
-                    
+
                     site.proc.on('exit', () => {
                         console.log(`${site.name} process terminated gracefully`);
                         clearTimeout(timeout);
@@ -55,13 +55,13 @@ export class MultiSite {
                 });
             }
         });
-        
+
         await Promise.all(promises.filter(Boolean));
-        
+
         // Clear all health check intervals
         this.healthCheckIntervals.forEach(interval => clearInterval(interval));
         this.healthCheckIntervals.clear();
-        
+
         console.log('All spawned processes cleaned up');
     }
 
@@ -72,18 +72,18 @@ export class MultiSite {
                 this.healthCheckIntervals.delete(site.name);
                 return;
             }
-            
+
             try {
-                await axios.get(`http://127.0.0.1:${site.options.env.PORT}/health`, { 
+                await axios.get(`http://127.0.0.1:${site.options.env.PORT}/health`, {
                     timeout: 5000,
-                    validateStatus: () => true 
+                    validateStatus: () => true
                 });
             } catch (error) {
                 if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
                     console.log(`Health check failed for ${site.name}, marking for restart...`);
                     clearInterval(intervalId);
                     this.healthCheckIntervals.delete(site.name);
-                    
+
                     // Mark the process as failed for cleanup
                     if (site.proc && !site.proc.killed) {
                         site.proc.kill('SIGTERM');
@@ -91,7 +91,7 @@ export class MultiSite {
                 }
             }
         }, 30000); // Check every 30 seconds
-        
+
         this.healthCheckIntervals.set(site.name, intervalId);
     }
 
@@ -104,16 +104,16 @@ export class MultiSite {
                 clearInterval(intervalId);
                 this.healthCheckIntervals.delete(oldSite.name);
             }
-            
+
             // Kill old process
             if (oldSite.proc && !oldSite.proc.killed) {
                 oldSite.proc.kill('SIGTERM');
             }
-            
+
             // Remove from used ports
             this.usedPorts.delete(oldSite.options.env.PORT);
         }
-        
+
         // Create new site
         this.sites[domain] = Site.Clone(domain, this);
         console.log(`Restarted site for domain: ${domain}`);
@@ -154,7 +154,7 @@ export class MultiSite {
             const domain = Site.GetId(req.hostname);
             const site = this.sites[domain];
             if (site) {
-                let target = `http://127.0.0.1:${site.options.env.PORT}${req.url}`;
+                let target = `//${req.hostname}:${site.options.env.PORT}${req.url}`;
                 const method = req.method;
                 const isBodyMethod = ['POST', 'PUT', 'PATCH'].includes(method);
                 const payload = isBodyMethod ? req.body : null;
@@ -183,7 +183,7 @@ export class MultiSite {
                         timeout: 30000, // 30 second timeout
                     });
 
-                    res.status(response.status).set(response.headers).send(response.data);
+                    res.status(response.status).set(response.headers).redirect(response.data);
                 } catch (error) {
                     console.error(`[Proxy] Error connecting to ${target}:`, error.message);
 
@@ -250,7 +250,7 @@ export class Site {
             this.proc.on('close', (code) => {
                 console.log(`${this.name}: process exited with code ${code}`);
                 this.proc = null;
-                
+
                 // Clear health check when process exits
                 if (this.healthCheckIntervals) {
                     const intervalId = this.healthCheckIntervals.get(this.name);
@@ -270,7 +270,7 @@ export class Site {
             setTimeout(() => {
                 if (this.proc && !this.proc.killed) {
                     console.log(`${this.name}: Successfully started on port ${this.options.env.PORT}`);
-                    
+
                     // Start health monitoring after a delay to allow process to fully start
                     if (this.startHealthCheck) {
                         setTimeout(() => {
