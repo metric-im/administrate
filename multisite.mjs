@@ -154,7 +154,7 @@ export class MultiSite {
             const domain = Site.GetId(req.hostname);
             const site = this.sites[domain];
             if (site) {
-                let target = `//${req.hostname}:${site.options.env.PORT}${req.url}`;
+                let target = `http://127.0.0.1:${site.options.env.PORT}${req.url}`;
                 const method = req.method;
                 const isBodyMethod = ['POST', 'PUT', 'PATCH'].includes(method);
                 const payload = isBodyMethod ? req.body : null;
@@ -187,23 +187,23 @@ export class MultiSite {
                 } catch (error) {
                     console.error(`[Proxy] Error connecting to ${target}:`, error.message);
 
-                    // Clean up dead processes
-                    this.removeDeadSites();
+                    // // Clean up dead processes
+                    // this.removeDeadSites();
+                    //
+                    // // Try to respawn the site if it's down
+                    // if (error.code === 'ECONNREFUSED') {
+                    //     console.log(`[Proxy] Attempting to respawn site for ${domain}`);
+                    //     this.sites[domain] = Site.Clone(domain, this);
+                    //     return res.status(503).send('Service temporarily unavailable. Please try again in a few seconds.');
+                    // }
 
-                    // Try to respawn the site if it's down
-                    if (error.code === 'ECONNREFUSED') {
-                        console.log(`[Proxy] Attempting to respawn site for ${domain}`);
-                        this.sites[domain] = Site.Clone(domain, this);
-                        return res.status(503).send('Service temporarily unavailable. Please try again in a few seconds.');
-                    }
-
-                    res.status(502).send('Bad Gateway');
+                    res.status(502).send('Bad Gateway. Try reloading.');
                 }
             } else {
                 this.sites[domain] = Site.Clone(domain,this);
                 // Retry the request after spawning
                 setTimeout(() => {
-                    res.send(`//${req.hostname}:${this.sites[domain].options.env.PORT}${req.url}`);
+                    res.redirect(`//${req.hostname}${req.url}`);
                 }, 2000);
             }
         });
