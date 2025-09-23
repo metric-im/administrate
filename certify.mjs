@@ -78,10 +78,16 @@ export class Certify {
           try {
             this.pending[sitename] = moment();
             setTimeout(async () => {
-              await this.renewCert(sitename);
+              try {
+                await this.renewCert(sitename);
+              } catch (e) {
+                console.error(`Failed to renew certificate for ${sitename}:`, e);
+                delete this.pending[sitename];
+              }
             },10);
           } catch(e) {
             console.error(e);
+            delete this.pending[sitename];
           }
         }
       }
@@ -100,29 +106,50 @@ export class Certify {
       } else {
         if (!this.contactEmail) throw new Error(`cannot request certificate without CONTACT_EMAIL set`);
         this.pending[sitename] = true;
-        // create CSR
-        const [key, csr] = await Acme.crypto.createCsr({
-          altNames: [sitename],
-        });
-        // order certificate
-        const cert = await this.acme.auto({
-          csr,
-          email: this.contactEmail,
-          termsOfServiceAgreed: true,
-          challengePriority: ['http-01'],
-          challengeCreateFn: (authz, challenge, keyAuthorization) => {
-            this.challenges[challenge.token] = keyAuthorization;
-          },
-          challengeRemoveFn: (authz, challenge) => {
-            delete this.challenges[challenge.token];
-          },
-        });
-        // save certificate
-        this.config.writeFile(sitename+'.cert', cert);
-        this.config.writeFile(sitename+'.key', key.toString());
-        this.config.data.ssl[sitename] = {key:sitename+'.key', cert:sitename+'.cert',certified:moment().format("YYYY-MM-DD")};
-        delete this.pending[sitename];
-        this.config.save();
+        
+        try {
+          // Add timeout wrapper for the entire certificate renewal process
+          await Promise.race([
+            this.doRenewCert(sitename),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error(`Certificate renewal timeout for ${sitename}`)), 120000) // 2 minute timeout
+            )
+          ]);
+        } catch (error) {
+          console.error(`Certificate renewal failed for ${sitename}:`, error);
+          delete this.pending[sitename];
+          throw error;
+        }
       }
+    }
+
+    async doRenewCert(sitename) {
+      // create CSR
+      const [key, csr] = await Acme.crypto.createCsr({
+        altNames: [sitename],
+      });
+      
+      // order certificate with timeout
+      const cert = await this.acme.auto({
+        csr,
+        email: this.contactEmail,
+        termsOfServiceAgreed: true,
+        challengePriority: ['http-01'],
+        challengeCreateFn: (authz, challenge, keyAuthorization) => {
+          this.challenges[challenge.token] = keyAuthorization;
+        },
+        challengeRemoveFn: (authz, challenge) => {
+          delete this.challenges[challenge.token];
+        },
+      });
+      
+      // save certificate
+      this.config.writeFile(sitename+'.cert', cert);
+      this.config.writeFile(sitename+'.key', key.toString());
+      this.config.data.ssl[sitename] = {key:sitename+'.key', cert:sitename+'.cert',certified:moment().format("YYYY-MM-DD")};
+      delete this.pending[sitename];
+      this.config.save();
+      
+      console.log(`Certificate successfully renewed for ${sitename}`);
     }
 }
