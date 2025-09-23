@@ -183,7 +183,7 @@ export class MultiSite {
                         timeout: 30000, // 30 second timeout
                     });
 
-                    res.status(response.status).set(response.headers).redirect(response.data);
+                    res.status(response.status).set(response.headers).send(response.data);
                 } catch (error) {
                     console.error(`[Proxy] Error connecting to ${target}:`, error.message);
 
@@ -203,9 +203,7 @@ export class MultiSite {
                 this.sites[domain] = Site.Clone(domain,this);
                 // Retry the request after spawning
                 setTimeout(() => {
-                    let target = `http://127.0.0.1:${this.sites[domain].options.env.PORT}${req.url}`;
-
-                    res.redirect(`http://127.0.0.1:${this.sites[domain].options.env.PORT}${req.url}`);
+                    res.send(`//${req.hostname}:${this.sites[domain].options.env.PORT}${req.url}`);
                 }, 2000);
             }
         });
