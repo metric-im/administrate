@@ -168,7 +168,6 @@ export class MultiSite {
 
                 const headersToForward = {
                     ...req.headers,
-                    host: undefined, // Prevent host mismatch
                     'content-length': undefined // Let Axios compute
                 };
 
