@@ -173,6 +173,9 @@ export class MultiSite {
 
 
                 try {
+                    // Determine if this is a binary file request
+                    const isBinaryRequest = /\.(woff2?|ttf|eot|otf|ico|png|jpe?g|gif|svg|pdf|zip|exe)(\?.*)?$/i.test(req.url);
+                    
                     const response = await axios({
                         method,
                         url: target,
@@ -181,14 +184,19 @@ export class MultiSite {
                         params: req.query,
                         validateStatus: () => true,
                         timeout: 30000, // 30 second timeout
-                        responseType: 'arraybuffer' // Handle binary data properly
+                        responseType: isBinaryRequest ? 'arraybuffer' : 'text'
                     });
 console.log(`${response.status} ${target}`);
                     // Clean up response headers that might cause issues
                     const cleanHeaders = {...response.headers};
                     delete cleanHeaders['transfer-encoding'];
                     delete cleanHeaders['content-encoding'];
-                    res.status(response.status).set(cleanHeaders).send(Buffer.from(response.data));
+                    
+                    if (isBinaryRequest) {
+                        res.status(response.status).set(cleanHeaders).send(Buffer.from(response.data));
+                    } else {
+                        res.status(response.status).set(cleanHeaders).send(response.data);
+                    }
                 } catch (error) {
                     console.error(`[Proxy] Error connecting to ${target}:`, error.message);
 
