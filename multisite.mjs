@@ -181,9 +181,14 @@ export class MultiSite {
                         params: req.query,
                         validateStatus: () => true,
                         timeout: 30000, // 30 second timeout
+                        responseType: 'arraybuffer' // Handle binary data properly
                     });
 console.log(`${response.status} ${target}`);
-                    res.status(response.status).set(response.headers).send(response.data);
+                    // Clean up response headers that might cause issues
+                    const cleanHeaders = {...response.headers};
+                    delete cleanHeaders['transfer-encoding'];
+                    delete cleanHeaders['content-encoding'];
+                    res.status(response.status).set(cleanHeaders).send(Buffer.from(response.data));
                 } catch (error) {
                     console.error(`[Proxy] Error connecting to ${target}:`, error.message);
 
