@@ -175,26 +175,48 @@ export class MultiSite {
                 try {
                     // Determine if this is a binary file request
                     const isBinaryRequest = /\.(woff2?|ttf|eot|otf|ico|png|jpe?g|gif|svg|pdf|zip|exe)(\?.*)?$/i.test(req.url);
-                    
-                    const response = await axios({
-                        method,
-                        url: target,
-                        headers: headersToForward,
-                        data: payload,
-                        params: req.query,
-                        validateStatus: () => true,
-                        timeout: 30000, // 30 second timeout
-                        responseType: isBinaryRequest ? 'arraybuffer' : 'text'
-                    });
-console.log(`${response.status} ${target}`);
-                    // Clean up response headers that might cause issues
-                    const cleanHeaders = {...response.headers};
-                    delete cleanHeaders['transfer-encoding'];
-                    delete cleanHeaders['content-encoding'];
-                    
+
                     if (isBinaryRequest) {
-                        res.status(response.status).set(cleanHeaders).send(Buffer.from(response.data));
+                        // Use streaming for binary files to avoid corruption
+                        const response = await axios({
+                            method,
+                            url: target,
+                            headers: headersToForward,
+                            data: payload,
+                            params: req.query,
+                            validateStatus: () => true,
+                            timeout: 30000,
+                            responseType: 'stream'
+                        });
+                        
+                        console.log(`${response.status} ${target} (binary stream)`);
+                        
+                        // Set headers without the problematic ones
+                        const cleanHeaders = {...response.headers};
+                        delete cleanHeaders['transfer-encoding'];
+                        delete cleanHeaders['content-encoding'];
+                        
+                        res.status(response.status).set(cleanHeaders);
+                        response.data.pipe(res);
                     } else {
+                        // Keep existing text/json handling
+                        const response = await axios({
+                            method,
+                            url: target,
+                            headers: headersToForward,
+                            data: payload,
+                            params: req.query,
+                            validateStatus: () => true,
+                            timeout: 30000,
+                            responseType: 'text'
+                        });
+                        
+                        console.log(`${response.status} ${target}`);
+                        
+                        const cleanHeaders = {...response.headers};
+                        delete cleanHeaders['transfer-encoding'];
+                        delete cleanHeaders['content-encoding'];
+                        
                         res.status(response.status).set(cleanHeaders).send(response.data);
                     }
                 } catch (error) {
@@ -299,6 +321,7 @@ export class Site {
         }
    }
     static GetId(hostName="") {
+        if (hostName.match(/^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$/)) return null
         return hostName.toLowerCase().replace(/[^a-z0-9-]+/g,'_');
     }
 }
