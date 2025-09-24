@@ -12,6 +12,7 @@ const certify = await Certify.attach(app,{contactEmail:'me@there.com'});
 // certify.SNI return {key: xxx, cert: ...} for the current domain and/or triggers a request for a cert
 const https_server = https.createServer({...certify.SNI},app);
 ```
+>NOTE: Set the environment variable PROFILE=DEV to instruct acme to fetch test circuits. Use this when testing or you will be throttled.
 
 ## Multisite
 Multisite acts as a proxy service. It listens on port 80 (4080), 443 (4443) for all web traffic and routes to the designated service. A service is identified by domain name. multisite will look for a service matching the incoming domain name in the *sites* folder. It spawns the app found with npm start and assigns it an http port. All subsquent traffic for that domain are routed to this process. Multisite can also clone itelf so that there is unique process running for each domain being interacted.
