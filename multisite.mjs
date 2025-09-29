@@ -18,6 +18,7 @@ export class MultiSite {
         this._spawnPort = (parseInt(this.options.spawnPort||0) || 53874);
         this.usedPorts = new Set();
         this.healthCheckIntervals = new Map();
+        this.isShuttingDown = false;
         this.setupCleanup();
     }
     get spawnPort() {
@@ -27,13 +28,58 @@ export class MultiSite {
     }
 
     setupCleanup() {
-        process.on('SIGTERM', () => this.cleanup());
-        process.on('SIGINT', () => this.cleanup());
-        process.on('exit', () => this.cleanup());
+        // Set up centralized signal handlers that host applications can use
+        this.gracefulShutdown = this.gracefulShutdown.bind(this);
+        
+        // Only handle the 'exit' event for emergency cleanup
+        process.on('exit', () => {
+            // Synchronous cleanup only - no async operations allowed in 'exit'
+            console.log('Emergency cleanup on exit...');
+            Object.values(this.sites).forEach((site) => {
+                if (site.proc && !site.proc.killed) {
+                    site.proc.kill('SIGKILL');
+                }
+            });
+        });
+    }
+
+    async gracefulShutdown(signal) {
+        if (this.isShuttingDown) {
+            console.log(`Received ${signal} again, forcing exit...`);
+            process.exit(1);
+        }
+        
+        this.isShuttingDown = true;
+        console.log(`Received ${signal}, shutting down gracefully...`);
+        
+        try {
+            console.log("Cleaning up child processes...");
+            await this.cleanup();
+            
+            console.log("Graceful shutdown complete");
+            process.exit(0);
+        } catch (error) {
+            console.error("Error during shutdown:", error);
+            process.exit(1);
+        }
+    }
+
+    setupSignalHandlers() {
+        // Method host applications can call to set up proper signal handling
+        process.on('SIGINT', () => this.gracefulShutdown('SIGINT'));
+        process.on('SIGTERM', () => this.gracefulShutdown('SIGTERM'));
+        console.log('MultiSite signal handlers installed');
     }
 
     async cleanup() {
         console.log('Cleaning up spawned processes...');
+        
+        // Set a global timeout for the entire cleanup process
+        const cleanupTimeout = setTimeout(() => {
+            console.log('Cleanup taking too long, forcing exit...');
+            process.exit(1);
+        }, 15000); // 15 second total timeout
+        
         const promises = Object.values(this.sites).map(async (site) => {
             if (site.proc && !site.proc.killed) {
                 return new Promise((resolve) => {
@@ -43,7 +89,7 @@ export class MultiSite {
                             site.proc.kill('SIGKILL');
                         }
                         resolve();
-                    }, 10000); // 10 second timeout for graceful shutdown
+                    }, 5000); // Reduced to 5 second timeout per process
 
                     site.proc.kill('SIGTERM');
 
@@ -62,6 +108,7 @@ export class MultiSite {
         this.healthCheckIntervals.forEach(interval => clearInterval(interval));
         this.healthCheckIntervals.clear();
 
+        clearTimeout(cleanupTimeout);
         console.log('All spawned processes cleaned up');
     }
 
