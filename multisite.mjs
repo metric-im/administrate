@@ -182,7 +182,7 @@ export class MultiSite {
         // spawn declared sites
         if (fs.existsSync(resolve('./sites'))) {
             instance.sites = (fs.readdirSync(resolve('./sites'))).reduce((result,hostName)=>{
-                const domainName = Site.GetId(hostName);
+                const domainName = Site.WashName(hostName);
                 const options = {
                     cwd: resolve(`./sites/${hostName}`),
                     env: {PORT:instance.spawnPort,meta:instance.options}
@@ -198,7 +198,7 @@ export class MultiSite {
         const router = express.Router();
 
         router.all(/.*/, async (req, res) => {
-            const domain = Site.GetId(req.hostname);
+            const domain = Site.WashName(req.hostname);
             const site = this.sites[domain];
             if (site) {
                 let target = `http://127.0.0.1:${site.options.env.PORT}${req.url}`;
