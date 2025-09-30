@@ -56,7 +56,7 @@ export class DomainConfig extends Config {
     this.domainConfigFile = join(this.domainConfigDir, 'config.ini');
     if (!fs.existsSync(this.domainConfigDir)) {
       fs.mkdirSync(this.domainConfigDir);
-      fs.writeFileSync(this.domainConfigFile,JSON.stringify([]));
+      fs.writeFileSync(this.domainConfigFile,`name=${domain}`);
     }
     this.load();
   }

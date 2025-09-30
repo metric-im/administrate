@@ -30,7 +30,7 @@ export class MultiSite {
     setupCleanup() {
         // Set up centralized signal handlers that host applications can use
         this.gracefulShutdown = this.gracefulShutdown.bind(this);
-        
+
         // Only handle the 'exit' event for emergency cleanup
         process.on('exit', () => {
             // Synchronous cleanup only - no async operations allowed in 'exit'
@@ -48,14 +48,14 @@ export class MultiSite {
             console.log(`Received ${signal} again, forcing exit...`);
             process.exit(1);
         }
-        
+
         this.isShuttingDown = true;
         console.log(`Received ${signal}, shutting down gracefully...`);
-        
+
         try {
             console.log("Cleaning up child processes...");
             await this.cleanup();
-            
+
             console.log("Graceful shutdown complete");
             process.exit(0);
         } catch (error) {
@@ -73,13 +73,13 @@ export class MultiSite {
 
     async cleanup() {
         console.log('Cleaning up spawned processes...');
-        
+
         // Set a global timeout for the entire cleanup process
         const cleanupTimeout = setTimeout(() => {
             console.log('Cleanup taking too long, forcing exit...');
             process.exit(1);
         }, 15000); // 15 second total timeout
-        
+
         const promises = Object.values(this.sites).map(async (site) => {
             if (site.proc && !site.proc.killed) {
                 return new Promise((resolve) => {
@@ -235,14 +235,14 @@ export class MultiSite {
                             timeout: 30000,
                             responseType: 'stream'
                         });
-                        
+
                         console.log(`${response.status} ${target} (binary stream)`);
-                        
+
                         // Set headers without the problematic ones
                         const cleanHeaders = {...response.headers};
                         delete cleanHeaders['transfer-encoding'];
                         delete cleanHeaders['content-encoding'];
-                        
+
                         res.status(response.status).set(cleanHeaders);
                         response.data.pipe(res);
                     } else {
@@ -257,13 +257,13 @@ export class MultiSite {
                             timeout: 30000,
                             responseType: 'text'
                         });
-                        
+
                         console.log(`${response.status} ${target}`);
-                        
+
                         const cleanHeaders = {...response.headers};
                         delete cleanHeaders['transfer-encoding'];
                         delete cleanHeaders['content-encoding'];
-                        
+
                         res.status(response.status).set(cleanHeaders).send(response.data);
                     }
                 } catch (error) {
@@ -366,9 +366,12 @@ export class Site {
             console.error(`${this.name}: Exception while spawning:`, err);
             this.proc = null;
         }
-   }
-    static GetId(hostName="") {
-        if (hostName.match(/^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$/)) return null
-        return hostName.toLowerCase().replace(/[^a-z0-9-]+/g,'_');
+    }
+    static WashName(hostName="") {
+      if (!hostName || hostName.match(/^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$/)) return "";
+      else return hostName.toLowerCase();
+    }
+    static SafeName(hostName) {
+      return Site.WashName(hostName).replace(/[^a-z0-9-]+/g,'_');
     }
 }
