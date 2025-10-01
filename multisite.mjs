@@ -19,6 +19,7 @@ export class MultiSite {
         this.usedPorts = new Set();
         this.healthCheckIntervals = new Map();
         this.isShuttingDown = false;
+        this.errorLogTracker = new Map(); // Track error frequency for rate limiting
         this.setupCleanup();
     }
     get spawnPort() {
@@ -176,6 +177,59 @@ export class MultiSite {
             }
         });
     }
+
+    // Check if request path looks like a security scanner/bot
+    isSecurityScannerPath(url) {
+        const scannerPatterns = [
+            /\/cgi-bin\//,
+            /\/_profiler\//,
+            /\/admin\//,
+            /\/wp-admin\//,
+            /\/wp-content\//,
+            /\/phpmyadmin\//,
+            /\/manager\/html/,
+            /\/solr\//,
+            /\/console\//,
+            /\/api\/v1\//,
+            /\/\.env$/,
+            /\/config\.php$/,
+            /\/phpinfo\.php$/,
+            /\/\.git\//,
+            /\/\.well-known\//
+        ];
+        return scannerPatterns.some(pattern => pattern.test(url));
+    }
+
+    // Rate limit error logging to prevent spam
+    shouldLogError(target, clientIP) {
+        const key = `${clientIP}:${target}`;
+        const now = Date.now();
+        const logEntry = this.errorLogTracker.get(key);
+        
+        if (!logEntry) {
+            this.errorLogTracker.set(key, { count: 1, firstSeen: now, lastLogged: now });
+            return true;
+        }
+        
+        logEntry.count++;
+        
+        // Reset counter if it's been more than 5 minutes since first error
+        if (now - logEntry.firstSeen > 300000) {
+            logEntry.count = 1;
+            logEntry.firstSeen = now;
+            logEntry.lastLogged = now;
+            return true;
+        }
+        
+        // Log first error, then every 10th error, but not more than once per minute
+        if (logEntry.count === 1 || 
+            (logEntry.count % 10 === 0 && now - logEntry.lastLogged > 60000)) {
+            logEntry.lastLogged = now;
+            return true;
+        }
+        
+        return false;
+    }
     static async attach(app,options) {
         const instance = new MultiSite(app,options);
         instance.config = new Config();
@@ -205,6 +259,12 @@ export class MultiSite {
                 const method = req.method;
                 const isBodyMethod = ['POST', 'PUT', 'PATCH'].includes(method);
                 const payload = isBodyMethod ? req.body : null;
+                const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+
+                // Early filter for known security scanner paths - respond immediately without proxying
+                if (this.isSecurityScannerPath(req.url)) {
+                    return res.status(404).send('Not Found');
+                }
 
                 // Debug logging for POST requests
                 if (method === 'POST') {
@@ -267,7 +327,15 @@ export class MultiSite {
                         res.status(response.status).set(cleanHeaders).send(response.data);
                     }
                 } catch (error) {
-                    console.error(`[Proxy] Error connecting to ${target}:`, error.message);
+                    // Rate limit error logging to prevent spam
+                    if (this.shouldLogError(target, clientIP)) {
+                        const logEntry = this.errorLogTracker.get(`${clientIP}:${target}`);
+                        if (logEntry && logEntry.count > 1) {
+                            console.error(`${clientIP}:E: [Proxy] Error connecting to ${target}: ${error.message} (${logEntry.count} times)`);
+                        } else {
+                            console.error(`${clientIP}:E: [Proxy] Error connecting to ${target}: ${error.message}`);
+                        }
+                    }
 
                     // // Clean up dead processes
                     // this.removeDeadSites();
