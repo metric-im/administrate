@@ -178,28 +178,6 @@ export class MultiSite {
         });
     }
 
-    // Check if request path looks like a security scanner/bot
-    isSecurityScannerPath(url) {
-        const scannerPatterns = [
-            /\/cgi-bin\//,
-            /\/_profiler\//,
-            /\/admin\//,
-            /\/wp-admin\//,
-            /\/wp-content\//,
-            /\/phpmyadmin\//,
-            /\/manager\/html/,
-            /\/solr\//,
-            /\/console\//,
-            /\/api\/v1\//,
-            /\/\.env$/,
-            /\/config\.php$/,
-            /\/phpinfo\.php$/,
-            /\/\.git\//,
-            /\/\.well-known\//
-        ];
-        return scannerPatterns.some(pattern => pattern.test(url));
-    }
-
     // Rate limit error logging to prevent spam
     shouldLogError(target, clientIP) {
         const key = `${clientIP}:${target}`;
@@ -260,11 +238,6 @@ export class MultiSite {
                 const isBodyMethod = ['POST', 'PUT', 'PATCH'].includes(method);
                 const payload = isBodyMethod ? req.body : null;
                 const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
-
-                // Early filter for known security scanner paths - respond immediately without proxying
-                if (this.isSecurityScannerPath(req.url)) {
-                    return res.status(404).send('Not Found');
-                }
 
                 // Debug logging for POST requests
                 if (method === 'POST') {
