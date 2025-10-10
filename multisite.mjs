@@ -263,7 +263,7 @@ export class MultiSite {
                             url: target,
                             headers: headersToForward,
                             data: payload,
-                            params: req.query,
+                            // Don't pass params - req.url already contains query string
                             validateStatus: () => true,
                             timeout: 30000,
                             responseType: 'stream'
@@ -285,7 +285,7 @@ export class MultiSite {
                             url: target,
                             headers: headersToForward,
                             data: payload,
-                            params: req.query,
+                            // Don't pass params - req.url already contains query string
                             validateStatus: () => true,
                             timeout: 30000,
                             responseType: 'text'
