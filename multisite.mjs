@@ -211,6 +211,7 @@ export class MultiSite {
     static async attach(app,options) {
         const instance = new MultiSite(app,options);
         instance.config = new Config();
+
         // spawn declared sites
         if (fs.existsSync(resolve('./sites'))) {
             instance.sites = (fs.readdirSync(resolve('./sites'))).reduce((result,hostName)=>{
@@ -226,6 +227,7 @@ export class MultiSite {
         app.use('/',instance.routes());
         return instance;
     }
+    
     routes() {
         const router = express.Router();
 
@@ -338,6 +340,12 @@ export class Site {
         this.name = name;
         this.options = options;
         this.parent = parent;
+        try {
+            const envars = JSON.parse(process.env.SITE_ENV||{});
+            Object.assign(this.options.env,envars[this.name]||{});
+        } catch(e) {
+            console.log(`Unable to parse SITE_ENV... continuing: ${e.message}`);
+        }
     }
     static Spawn(name, options, parent) {
         const instance = new Site(name, options, parent);
