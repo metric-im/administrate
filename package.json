@@ -21,6 +21,7 @@
     "@metric-im/componentry": "^1.4.4",
     "acme-client": "^5.4.0",
     "axios": "^1.7.0",
+    "epistery": "^1.0.0",
     "express": "^5.1.0",
     "ini": "^5.0.0",
     "moment": "^2.30.1"

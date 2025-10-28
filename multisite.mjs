@@ -1,6 +1,6 @@
 import express from 'express';
 import tls from 'tls';
-import { Config } from './config.mjs';
+import { Config } from 'epistery';
 import moment from 'moment';
 import fs from "fs";
 import {resolve} from "path";

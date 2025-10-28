@@ -1,7 +1,7 @@
 import express from 'express';
 import Acme from 'acme-client';
 import tls from 'tls';
-import { Config } from './config.mjs';
+import { Config } from 'epistery';
 import moment from 'moment';
 
 const MAX_AGE = 75; // days
@@ -17,9 +17,13 @@ export class Certify {
     }
     static async attach(app,options) {
         const instance = new Certify(app,options);
-        instance.config = new Config();
-        if (!instance.config.data.ssl) instance.config.data.ssl = {};
-        instance.contactEmail = instance.config.profile?.email || instance.options.contactEmail;
+        instance.config = new Config(); // Uses default 'epistery' root
+
+        // Load root config to get contact email
+        instance.config.setPath('/');
+        instance.config.load();
+        instance.contactEmail = instance.options.contactEmail || instance.config.data.ssl?.email || instance.config.data.profile?.email;
+
         instance.acme = new Acme.Client({
             directoryUrl: Acme.directory.letsencrypt[process.env.PROFILE==='DEV'?'staging':'production'],
             accountKey: await Acme.crypto.createPrivateKey(),
@@ -71,9 +75,13 @@ export class Certify {
       if (sitename === 'localhost' || sitename.includes('.local') || sitename.match(/^\d+\.\d+\.\d+\.\d+$/)) {
         return null; // Use default certificate
       }
-      
-      const site = this.config.data.ssl ? this.config.data.ssl[sitename] : undefined;
-      if (!site?.certified || moment().isAfter(moment(site.certified).add(MAX_AGE, 'days'))) {
+
+      // Load domain-specific config to check SSL section
+      this.config.setPath(`/${sitename}`);
+      this.config.load();
+      const sslConfig = this.config.data.ssl;
+
+      if (!sslConfig?.certified || moment().isAfter(moment(sslConfig.certified).add(MAX_AGE, 'days'))) {
         if (!this.pending[sitename] || moment().isAfter(moment(this.pending[sitename]).add(MAX_WAIT_TIME, 'seconds'))) {
           try {
             this.pending[sitename] = moment();
@@ -91,27 +99,31 @@ export class Certify {
           }
         }
       }
-      if (site) {
-        const key = this.config.readFile(site.key).toString();
-        const cert = this.config.readFile(site.cert).toString();
+      if (sslConfig?.key && sslConfig?.cert) {
+        const key = this.config.readFile(sslConfig.key).toString();
+        const cert = this.config.readFile(sslConfig.cert).toString();
         return {key: key, cert: cert};
       } else {
         return null;
       }
     }
     async renewCert(sitename) {
-      const site = this.config.data.ssl ? this.config.data.ssl[sitename] : undefined;
-      if (site?.certified && moment().isBefore(moment(site.certified).add(MAX_AGE, 'days'))) {
+      // Load domain config to check SSL certification date
+      this.config.setPath(`/${sitename}`);
+      this.config.load();
+      const sslConfig = this.config.data.ssl;
+
+      if (sslConfig?.certified && moment().isBefore(moment(sslConfig.certified).add(MAX_AGE, 'days'))) {
         return;
       } else {
         if (!this.contactEmail) throw new Error(`cannot request certificate without CONTACT_EMAIL set`);
         this.pending[sitename] = true;
-        
+
         try {
           // Add timeout wrapper for the entire certificate renewal process
           await Promise.race([
             this.doRenewCert(sitename),
-            new Promise((_, reject) => 
+            new Promise((_, reject) =>
               setTimeout(() => reject(new Error(`Certificate renewal timeout for ${sitename}`)), 120000) // 2 minute timeout
             )
           ]);
@@ -128,7 +140,7 @@ export class Certify {
       const [key, csr] = await Acme.crypto.createCsr({
         altNames: [sitename],
       });
-      
+
       // order certificate with timeout
       const cert = await this.acme.auto({
         csr,
@@ -142,14 +154,22 @@ export class Certify {
           delete this.challenges[challenge.token];
         },
       });
-      
-      // save certificate
-      this.config.writeFile(sitename+'.cert', cert);
-      this.config.writeFile(sitename+'.key', key.toString());
-      this.config.data.ssl[sitename] = {key:sitename+'.key', cert:sitename+'.cert',certified:moment().format("YYYY-MM-DD")};
+
+      // Set path to domain directory and save certificate files there
+      this.config.setPath(`/${sitename}`);
+      this.config.writeFile('ssl_cert.pem', cert);
+      this.config.writeFile('ssl_key.pem', key.toString());
+
+      // Load existing config and add/update [ssl] section
+      this.config.load();
+      if (!this.config.data.ssl) this.config.data.ssl = {};
+      this.config.data.ssl.key = 'ssl_key.pem';
+      this.config.data.ssl.cert = 'ssl_cert.pem';
+      this.config.data.ssl.certified = moment().format("YYYY-MM-DD");
+
       delete this.pending[sitename];
       this.config.save();
-      
+
       console.log(`Certificate successfully renewed for ${sitename}`);
     }
 }
