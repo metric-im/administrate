@@ -17,11 +17,12 @@ export class Certify {
     }
     static async attach(app,options) {
         const instance = new Certify(app,options);
-        instance.config = new Config(); // Uses default 'epistery' root
+        instance.config = new Config();
 
         // Load root config to get contact email
         instance.config.setPath('/');
         instance.config.load();
+
         instance.contactEmail = instance.options.contactEmail || instance.config.data.ssl?.email || instance.config.data.profile?.email;
 
         instance.acme = new Acme.Client({
