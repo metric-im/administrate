@@ -151,10 +151,11 @@ export class Certify {
         // RFC 5280: Use organization (O) field to identify Rootz Corp as binding provider
         csrOptions.organization = 'Rootz Corp';
         // RFC 5280: Use organizationUnit (OU) to store epistery identity address
+        // This binds the domain to the epistery address in the certificate
+        // Users can verify at /.well-known/epistery/status (RFC 8615 well-known URI)
         csrOptions.organizationUnit = `Epistery: ${episteryAddress}`;
-        // RFC 8615: Add well-known URI to Subject Alternative Names for epistery status
-        csrOptions.altNames.push(`https://${sitename}/.well-known/epistery/status`);
         console.log(`Binding epistery identity ${episteryAddress} to certificate for ${sitename}`);
+        console.log(`Epistery binding verifiable at https://${sitename}/.well-known/epistery/status`);
       }
 
       // create CSR
