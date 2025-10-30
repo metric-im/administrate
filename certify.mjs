@@ -136,10 +136,28 @@ export class Certify {
     }
 
     async doRenewCert(sitename) {
-      // create CSR
-      const [key, csr] = await Acme.crypto.createCsr({
+      // Check if domain has an epistery address
+      const domainConfig = this.config.read(sitename);
+      const episteryAddress = domainConfig?.wallet?.address;
+
+      // Prepare CSR options
+      const csrOptions = {
         altNames: [sitename],
-      });
+      };
+
+      // If epistery address exists, bind it to the certificate per X.509 standards
+      if (episteryAddress) {
+        // RFC 5280: Use organization (O) field to identify Rootz Corp as binding provider
+        csrOptions.organization = 'Rootz Corp';
+        // RFC 5280: Use organizationUnit (OU) to store epistery identity address
+        csrOptions.organizationUnit = `Epistery: ${episteryAddress}`;
+        // RFC 8615: Add well-known URI to Subject Alternative Names for epistery status
+        csrOptions.altNames.push(`https://${sitename}/.well-known/epistery/status`);
+        console.log(`Binding epistery identity ${episteryAddress} to certificate for ${sitename}`);
+      }
+
+      // create CSR
+      const [key, csr] = await Acme.crypto.createCsr(csrOptions);
 
       // order certificate with timeout
       const cert = await this.acme.auto({
