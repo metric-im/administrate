@@ -40,6 +40,7 @@ export class Certify {
     get SNI() {
         return {SNICallback: async (hostname, cb) => {
             try {
+              if (this.pending[hostname]) cb('pending');
               console.log(`SNL get keys for ${hostname}`)
               const siteKeys = await this.getSiteKeys(hostname);
               cb(null, tls.createSecureContext(siteKeys));
@@ -146,17 +147,17 @@ export class Certify {
         altNames: [sitename],
       };
 
-      // If epistery address exists, bind it to the certificate per X.509 standards
-      if (episteryAddress) {
-        // RFC 5280: Use organization (O) field to identify Rootz Corp as binding provider
-        csrOptions.organization = 'Rootz Corp';
-        // RFC 5280: Use organizationUnit (OU) to store epistery identity address
-        // This binds the domain to the epistery address in the certificate
-        // Users can verify at /.well-known/epistery/status (RFC 8615 well-known URI)
-        csrOptions.organizationUnit = `Epistery: ${episteryAddress}`;
-        console.log(`Binding epistery identity ${episteryAddress} to certificate for ${sitename}`);
-        console.log(`Epistery binding verifiable at https://${sitename}/.well-known/epistery/status`);
-      }
+      // // letsencrypt will not accept an OU it doesn't certify
+      // if (episteryAddress) {
+      //   // RFC 5280: Use organization (O) field to identify Rootz Corp as binding provider
+      //   csrOptions.organization = 'Rootz Corp';
+      //   // RFC 5280: Use organizationUnit (OU) to store epistery identity address
+      //   // This binds the domain to the epistery address in the certificate
+      //   // Users can verify at /.well-known/epistery/status (RFC 8615 well-known URI)
+      //   csrOptions.organizationUnit = `Epistery: ${episteryAddress}`;
+      //   console.log(`Binding epistery identity ${episteryAddress} to certificate for ${sitename}`);
+      //   console.log(`Epistery binding verifiable at https://${sitename}/.well-known/epistery/status`);
+      // }
 
       // create CSR
       const [key, csr] = await Acme.crypto.createCsr(csrOptions);
