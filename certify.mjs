@@ -40,7 +40,7 @@ export class Certify {
     get SNI() {
         return {SNICallback: async (hostname, cb) => {
             try {
-              if (this.pending[hostname]) cb('pending');
+              if (this.pending[hostname]) return(cb('pending'));
               console.log(`SNL get keys for ${hostname}`)
               const siteKeys = await this.getSiteKeys(hostname);
               cb(null, tls.createSecureContext(siteKeys));
