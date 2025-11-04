@@ -118,7 +118,7 @@ export class Certify {
         return;
       } else {
         if (!this.contactEmail) throw new Error(`cannot request certificate without CONTACT_EMAIL set`);
-        this.pending[sitename] = true;
+        this.pending[sitename] = moment();
 
         try {
           // Add timeout wrapper for the entire certificate renewal process
