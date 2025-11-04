@@ -138,16 +138,15 @@ export class Certify {
     }
 
     async doRenewCert(sitename) {
-      // Check if domain has an epistery address
-      const domainConfig = this.config.read(sitename);
-      const episteryAddress = domainConfig?.wallet?.address;
-
       // Prepare CSR options
       const csrOptions = {
         altNames: [sitename],
       };
 
       // // letsencrypt will not accept an OU it doesn't certify
+      // // Check if domain has an epistery address
+      // const domainConfig = this.config.read(sitename);
+      // const episteryAddress = domainConfig?.wallet?.address;
       // if (episteryAddress) {
       //   // RFC 5280: Use organization (O) field to identify Rootz Corp as binding provider
       //   csrOptions.organization = 'Rootz Corp';
