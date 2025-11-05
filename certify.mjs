@@ -55,11 +55,15 @@ export class Certify {
 
         router.get(/^\/\.well-known\/acme-challenge\/([^\/]+)$/,(req,res)=>{
             const token = req.params[0];
+            console.log(`ACME challenge request for token: ${token}`);
+            console.log(`Available challenges:`, Object.keys(this.challenges));
             if (token in this.challenges) {
+                console.log(`✓ Challenge found, responding with authorization`);
                 res.writeHead(200);
                 res.end(this.challenges[token]);
                 return;
             }
+            console.log(`✗ Challenge not found, returning 404`);
             // Don't redirect ACME challenges - return 404 instead (says Claude, used to be 302)
             res.writeHead(404);
             res.end('Challenge not found');
@@ -168,9 +172,12 @@ export class Certify {
         termsOfServiceAgreed: true,
         challengePriority: ['http-01'],
         challengeCreateFn: (authz, challenge, keyAuthorization) => {
+          console.log(`✓ Challenge created - token: ${challenge.token}`);
+          console.log(`  Challenge URL: http://${sitename}/.well-known/acme-challenge/${challenge.token}`);
           this.challenges[challenge.token] = keyAuthorization;
         },
         challengeRemoveFn: (authz, challenge) => {
+          console.log(`✓ Challenge removed - token: ${challenge.token}`);
           delete this.challenges[challenge.token];
         },
       });
