@@ -25,6 +25,6 @@
     "moment": "^2.30.1"
   },
   "peerDependencies": {
-    "epistery": "^1.0.3"
+    "epistery": "^1.0.7"
   }
 }
