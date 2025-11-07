@@ -15,6 +15,7 @@ export class MultiSite {
         this.app = app;
         this.options = options || {};
         this.sites = {};
+        this.spawning = new Set(); // Track domains currently being spawned
         this._spawnPort = (parseInt(this.options.spawnPort||0) || 53874);
         this.usedPorts = new Set();
         this.healthCheckIntervals = new Map();
@@ -325,11 +326,25 @@ export class MultiSite {
                     res.status(502).send('Bad Gateway. Try reloading.');
                 }
             } else {
-                this.sites[domain] = Site.Clone(domain,this);
-                // Retry the request after spawning
-                setTimeout(() => {
-                    res.redirect(`//${req.hostname}${req.url}`);
-                }, 2000);
+                // Check if already spawning to prevent race condition
+                if (this.spawning.has(domain)) {
+                    // Site is already being spawned, wait for it
+                    setTimeout(() => {
+                        res.redirect(`//${req.hostname}${req.url}`);
+                    }, 2000);
+                } else {
+                    // Mark as spawning
+                    this.spawning.add(domain);
+                    this.sites[domain] = Site.Clone(domain,this);
+                    // Remove from spawning set after spawn completes
+                    setTimeout(() => {
+                        this.spawning.delete(domain);
+                    }, 3000);
+                    // Retry the request after spawning
+                    setTimeout(() => {
+                        res.redirect(`//${req.hostname}${req.url}`);
+                    }, 2000);
+                }
             }
         });
         return router;
@@ -341,7 +356,7 @@ export class Site {
         this.options = options;
         this.parent = parent;
         try {
-            const envars = JSON.parse(process.env.SITE_ENV||{});
+            const envars = JSON.parse(process.env.SITE_ENV||'{}');
             Object.assign(this.options.env,envars[this.name]||{});
         } catch(e) {
             console.log(`Unable to parse SITE_ENV... continuing: ${e.message}`);
